@@ -1,6 +1,7 @@
 from utillc import *
-
 from pyxfoil import Xfoil, set_workdir, set_xfoilexe
+import matplotlib.pyplot as plt
+
 
 print_everything()
 
@@ -8,7 +9,11 @@ set_workdir('.')
 set_xfoilexe('/usr/bin/xfoil') # Sets the path of the xfoil executable.
 
 xfoil = Xfoil('NACA 0012')
-xfoil.points_from_dat('/mnt/NUC/download/NACA_0012_180.dat')
+#xfoil.points_from_dat('/mnt/NUC/download/NACA_0012_180.dat')
+
+xfoil = Xfoil('wingfoil')
+xfoil.points_from_dat('WINGFOIL.dat')
+
 xfoil.set_ppar(180)
 
 al = [-2.0, 0.0, 4.0, 6.0]
@@ -67,3 +72,9 @@ axp3 = None
 axp3 = polar1.plot_polar(ax=axp3, xaxis='alpha', yaxis='cl', ls='solid')
 axp3 = polar2.plot_polar(ax=axp3, xaxis='alpha', yaxis='cl', ls='dotted')
 _ = axp3.legend()
+plt.show()
+
+
+
+
+
