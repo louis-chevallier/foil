@@ -5,5 +5,6 @@
 - exploring eulerian particle grid-based simulation - EFoil
 - compare those results against XFoil
 - discover simulation formulation to make those closer
+- for this purpose implement simulation with pytorch and optimize
 - if successful apply EFoil on non standard foils , in particular foil describing wing foil
 -  
