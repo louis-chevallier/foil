@@ -1,4 +1,8 @@
 start :
+	python simu.py
+
+
+start1 :
 	python wing.py
 	python foil.py
 
