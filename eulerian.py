@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from utillc import *
 
+from tkinter import Tk, Label
+from PIL import Image, ImageTk
+
 print_everything()
 
 # =======================
@@ -25,6 +28,13 @@ T= torch.float32
 u = torch.zeros((1, 1, N, N), device=device)  # vitesse X
 v = torch.zeros((1, 1, N, N), device=device)  # vitesse Y
 density = torch.zeros((1, 1, N, N), device=device)
+
+# v : vertical, u : horizontal
+# u[batch,depth, index vertical , index horizontal] += 1./10
+
+obstacle = torch.zeros((1, 1, N, N), device=device).byte()
+obstacle[:,:,N//3 : N//3 + N//10, N//5 : N//5 + N//10] = 1
+		 
 EKOX(u.dtype)
 #sys.exit(0)
 
@@ -90,7 +100,7 @@ def project(u, v):
 	#EKOX(v[:,:,2:,:].shape)
 	#EKOX(v[:,:,:-2,:].shape)
 
-	div  = -0.5 * h * (fu(u) + fv(v))
+	div	 = -0.5 * h * (fu(u) + fv(v))
 	#EKOX(div.shape)
 	"""
 	div = -0.5 * h * (
@@ -133,16 +143,44 @@ def project(u, v):
 # =================
 # Boucle de simulation
 # =================
-plt.ion()
-fig, ax = plt.subplots()
 
-for frame in range(500):
-	# Injection de densité et vitesse au centre
-	cx, cy = N//2, N//2
-	density[:,:,cy-2:cy+2, cx-2:cx+2] += 5.0
-	u[:,:,cy-2:cy+2, cx-2:cx+2] += torch.randn(1,1,4,4, device=device)*0.2
-	v[:,:,cy-2:cy+2, cx-2:cx+2] += torch.randn(1,1,4,4, device=device)*0.2
 
+root = Tk()
+root.title("Simulation Fluide 2D (PyTorch + Tkinter)")
+label = Label(root)
+label.pack()
+txt = Label(root, 
+			text ="count",
+			bg="lightblue"				 )
+
+# Pack the label into the window
+txt.pack(pady=20)  
+count = 0
+M=2
+
+def update_frame():
+	global count, u, v, density
+	count += 1
+	txt['text'] = "count %d" % count
+
+	# flux entrant
+	if False :
+		# Injection de densité et vitesse au centre
+		cx, cy = N//2, N//2
+		density[:,:,cy-2:cy+2, cx-2:cx+2] += 5.0
+		u[:,:,cy-2:cy+2, cx-2:cx+2] += torch.randn(1,1,4,4, device=device)*0.2
+		v[:,:,cy-2:cy+2, cx-2:cx+2] += torch.randn(1,1,4,4, device=device)*0.2
+
+	density[:,:,:, 0] = M
+	u[:,:, :, 0] += 1./10
+
+
+	# obstacle
+	solid = obstacle.bool()
+	u[solid] = 0.0
+	v[solid] = 0.0	
+
+	
 	# Étapes principales du solveur
 	u = diffuse(u, viscosity)
 	v = diffuse(v, viscosity)
@@ -155,12 +193,31 @@ for frame in range(500):
 
 	u, v = project(u_adv, v_adv)
 
-	# Affichage
-	ax.clear()
-	ax.imshow(density[0,0].detach().cpu().numpy(), cmap='plasma', origin='lower')
-	ax.set_title(f"Simulation fluide - frame {frame}")
-	ax.axis('off')
-	plt.pause(0.01)
+	if count == -200 :
+		plt.imshow(density[0, 0].detach().cpu().numpy()); plt.show()
 
-plt.ioff()
-plt.show()
+
+	img = density[0, 0].clamp(0, M) / M
+	img = (img * 255).byte().cpu().numpy()
+
+	oo = obstacle.bool().numpy()[0,0]
+	img[oo] = 122
+	
+	img = Image.fromarray(img, mode="L").resize((256, 256))
+	img_tk = ImageTk.PhotoImage(img)
+
+	# Mise à jour Tkinter
+	label.imgtk = img_tk
+	label.configure(image=img_tk)
+
+	root.after(20, update_frame)
+
+def key_press(event):
+	key = event.char
+	if key == 'q' : sys.exit()
+	
+root.bind('<Key>', key_press)	
+# Lancement de la boucle
+update_frame()
+root.mainloop()
+
