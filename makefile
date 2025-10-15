@@ -1,4 +1,7 @@
 start :
+	python eulerian.py
+
+start2 :
 	python simu.py
 
 
