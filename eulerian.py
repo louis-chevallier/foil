@@ -16,7 +16,7 @@ print_everything()
 # =======================
 device = "cuda" if torch.cuda.is_available() else "cpu"
 EKOX(device)
-N = 128			  # résolution de la grille
+N = 128*2			  # résolution de la grille
 dt = 0.1		  # pas de temps
 viscosity = 0.001 # coefficient de diffusion
 iterations = 20	  # itérations pour la projection de pression
@@ -38,19 +38,19 @@ obstacle[:,:,N//3 : N//3 + N//10, N//5 : N//5 + N//10] = 1
 EKOX(u.dtype)
 #sys.exit(0)
 
-fu = torch.nn.Conv2d(1, 1, (2,1), padding='same')
-fu.weight.data=torch.tensor([[[[-1.], [1.]]]])
-fu.bias.data = torch.zeros((1))
+fu = todev(torch.nn.Conv2d(1, 1, (2,1), padding='same'))
+fu.weight.data=todev(torch.tensor([[[[-1.], [1.]]]]))
+fu.bias.data = todev(torch.zeros((1)))
 
-right = torch.nn.Conv2d(1, 1, (2,1), padding='same')
+right = todev(torch.nn.Conv2d(1, 1, (2,1), padding='same'))
 right.weight.data=torch.tensor([[[[0.], [1.]]]])
 right.bias.data = torch.zeros((1))
 
-fv = torch.nn.Conv2d(1, 1, (1,2), padding='same')
-fv.weight.data = torch.tensor([[[[1., -1.]]]])
-fv.bias.data = torch.zeros((1))
+fv = todev(torch.nn.Conv2d(1, 1, (1,2), padding='same'))
+fv.weight.data = todev(torch.tensor([[[[1., -1.]]]]))
+fv.bias.data = todev(torch.zeros((1)))
 
-up = torch.nn.Conv2d(1, 1, (1,2), padding='same')
+up = todev(torch.nn.Conv2d(1, 1, (1,2), padding='same'))
 up.weight.data = torch.tensor([[[[1., 0.]]]])
 up.bias.data = torch.zeros((1))
 
@@ -200,7 +200,7 @@ def update_frame():
 	img = density[0, 0].clamp(0, M) / M
 	img = (img * 255).byte().cpu().numpy()
 
-	oo = obstacle.bool().numpy()[0,0]
+	oo = obstacle.bool().cpu().numpy()[0,0]
 	img[oo] = 122
 	
 	img = Image.fromarray(img, mode="L").resize((256, 256))
@@ -219,5 +219,7 @@ def key_press(event):
 root.bind('<Key>', key_press)	
 # Lancement de la boucle
 update_frame()
-root.mainloop()
+
+with torch.no_grad():
+		root.mainloop()
 
